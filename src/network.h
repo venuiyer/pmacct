@@ -196,6 +196,13 @@ struct pm_tcp_md5sig
 };
 
 #define UDP_PORT_VXLAN	4789
+#define UDP_PORT_GENEVE	6081
+
+/*
+ * TBD: use optlen from hdr; hardcode this for now
+ * OVN uses only 1 TLV of 8 bytes so just use that.
+ */
+#define UDP_PORT_GENEVE_OVNTLV_OFFSET  8
 
 struct pm_udphdr
 {
@@ -225,6 +232,15 @@ struct vxlan_hdr {
   u_char reserved1[3];
   u_char vni[3];
   u_int8_t reserved2;
+} __attribute__ ((packed));
+
+/* according to rfc8926 */
+struct geneve_hdr {
+  u_int8_t veroptlen;
+  u_int8_t flagsreserv;
+  u_int16_t protocoltype;
+  u_char vni[3];
+  u_int8_t reserved;
 } __attribute__ ((packed));
 
 #define MAX_GTP_TRIALS	8

@@ -288,6 +288,23 @@ int ip_handler(register struct packet_ptrs *pptrs)
 	      if (tpptrs->iph_ptr) ((*tpptrs->l3_handler)(tpptrs));
 	    }
 	  }
+	  if (dst_port == UDP_PORT_GENEVE && (off + sizeof(struct geneve_hdr) + UDP_PORT_GENEVE_OVNTLV_OFFSET <= caplen)) {
+	    struct geneve_hdr *genhdr = (struct geneve_hdr *) pptrs->payload_ptr; 
+
+	    /* TBD: change vxlan_ptr to tun_ptr */
+	    pptrs->vxlan_ptr = genhdr->vni;
+	    pptrs->payload_ptr += sizeof(struct geneve_hdr);
+
+	    if (pptrs->tun_pptrs) {
+	      struct packet_ptrs *tpptrs = (struct packet_ptrs *) pptrs->tun_pptrs;
+
+	      tpptrs->pkthdr->caplen = (pptrs->pkthdr->caplen - (pptrs->payload_ptr - pptrs->packet_ptr)); 
+	      tpptrs->packet_ptr = pptrs->payload_ptr;
+
+	      eth_handler(tpptrs->pkthdr, tpptrs);
+	      if (tpptrs->iph_ptr) ((*tpptrs->l3_handler)(tpptrs));
+	    }
+	  }
 	}
       }
     }

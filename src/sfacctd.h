@@ -315,6 +315,7 @@ extern void decodeIPLayer4(SFSample *, u_char *, u_int32_t);
 extern void decodeIPV4(SFSample *);
 extern void decodeIPV6(SFSample *);
 extern void decodeVXLAN(SFSample *, u_char *);
+extern void decodeGeneve(SFSample *, u_char *);
 extern void readExtendedSwitch(SFSample *);
 extern void readExtendedRouter(SFSample *);
 extern void readExtendedGateway_v2(SFSample *);

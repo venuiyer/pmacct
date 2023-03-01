@@ -221,6 +221,10 @@ void decodeIPLayer4(SFSample *sample, u_char *ptr, u_int32_t ipProtocol)
 	ptr += sizeof(udp);
 	decodeVXLAN(sample, ptr);
       }
+      if (sample->dcd_dport == UDP_PORT_GENEVE) {
+	ptr += sizeof(udp);
+	decodeGeneve(sample, ptr);
+      }
     }
     break;
   default: /* some other protcol */
@@ -265,6 +269,50 @@ void decodeVXLAN(SFSample *sample, u_char *ptr)
       if (sppi->gotIPV4) decodeIPV4(sppi);
       else if (sppi->gotIPV6) decodeIPV6(sppi);
     }
+  }
+}
+
+void decodeGeneve(SFSample *sample, u_char *ptr)
+{
+  struct geneve_hdr *hdr = NULL;
+  u_char *vni_ptr = NULL;
+  u_int32_t vni;
+  u_char *end = sample->header + sample->headerLen;
+
+  if (ptr > (end - 8)) return;
+
+  hdr = (struct geneve_hdr *) ptr;
+
+  vni_ptr = hdr->vni;
+
+  /* decode 24-bit label */
+  vni = *vni_ptr++;
+  vni <<= 8;
+  vni += *vni_ptr++;
+  vni <<= 8;
+  vni += *vni_ptr++;
+
+  sample->vni = vni;
+  /* Get the optlen, which is a multiple of 4 bytes
+   optlen = hdr->versoptlen & 0x3F;
+   optlen *= 4
+   */
+  /* Hardcode option len for now; OVN uses only 8 byte option hdr */
+  ptr += sizeof(struct geneve_hdr) + UDP_PORT_GENEVE_OVNTLV_OFFSET;
+
+  /* TBD - parse Geneve TLV */
+  if (sample->sppi) {
+    SFSample *sppi = (SFSample *) sample->sppi;
+
+    /* preps */
+    sppi->datap = (u_int32_t *) ptr;
+    sppi->header = ptr;
+    sppi->headerLen = (end - ptr);
+
+    /* decoding inner packet */
+    decodeLinkLayer(sppi);
+    if (sppi->gotIPV4) decodeIPV4(sppi);
+    else if (sppi->gotIPV6) decodeIPV6(sppi);
   }
 }
 
